@@ -22,7 +22,6 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
-    // INFO, SUCCESS, WARNING, ERROR
     @Builder.Default
     private String type = "INFO";
 
@@ -37,11 +36,9 @@ public class Notification {
     @JoinColumn(name = "team_id")
     private Team team;
 
-    // Type de notification : TASK, TEAM_REQUEST, TEAM_INVITATION
     @Builder.Default
     private String notificationType = "TASK";
 
-    // Statut pour les demandes de team : PENDING, ACCEPTED, REJECTED
     @Builder.Default
     private String requestStatus = "PENDING";
 
