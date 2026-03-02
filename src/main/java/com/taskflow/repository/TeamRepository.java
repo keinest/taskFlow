@@ -24,14 +24,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     @Query("SELECT DISTINCT t FROM Team t JOIN t.members m WHERE m.id = :userId OR t.creator.id = :userId ORDER BY t.createdAt DESC")
     List<Team> findTeamsByUserId(@Param("userId") Long userId);
 
-    /**
-     * BUG CORRIGÉ #2 : RANDOM() et LIMIT ne sont pas du JPQL standard.
-     * RANDOM() est une fonction SQL dialecte-spécifique (PostgreSQL/H2),
-     * et LIMIT n'existe pas en JPQL → HibernateException au runtime.
-     * Correction : on passe par un Pageable pour limiter les résultats,
-     * et on trie par createdAt DESC (stable, reproductible en tests).
-     * Pour un vrai "aléatoire", le mélange se fait en Java dans TeamService.
-     */
+    
     @Query("SELECT t FROM Team t WHERE t.isPublic = true ORDER BY t.createdAt DESC")
     List<Team> findPublicTeamsForSuggestions(org.springframework.data.domain.Pageable pageable);
 }
