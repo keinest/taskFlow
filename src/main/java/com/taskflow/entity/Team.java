@@ -55,7 +55,7 @@ public class Team {
     private LocalDateTime updatedAt;
 
     public int getMemberCount() {
-        return members != null ? members.size() + 1 : 1; // +1 pour le créateur
+        return members != null ? members.size() + 1 : 1;
     }
 
     public boolean isMember(User user) {
