@@ -18,7 +18,7 @@ public class CommentNotificationController {
     private final NotificationService notificationService;
     private final UserService userService;
 
-    // ─── Commentaires ─────────────────────────────────────
+    // === Commentaires =================================
 
     @PostMapping("/api/tasks/{taskId}/comments")
     public ResponseEntity<?> addComment(@PathVariable Long taskId,
