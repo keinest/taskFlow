@@ -14,5 +14,5 @@ public class TaskRequest {
     private Long assignedToId;
     private String status;
     private String priority;
-    private String dueDate; // format ISO: yyyy-MM-dd
+    private String dueDate; 
 }
