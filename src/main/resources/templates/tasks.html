@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Tâches', 'tasks.css')}"></head>
+<body class="app-body">
+
+<div class="app-layout">
+    <div th:replace="~{fragments/layout :: sidebar}"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/layout :: topbar('Tâches')}"></div>
+
+        <div class="content-inner">
+
+            <!-- Filtres -->
+            <div class="filter-bar">
+                <form method="get" th:action="@{/tasks}" class="filter-form" id="filterForm">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" name="search" class="form-input search-input"
+                               placeholder="Rechercher une tâche..."
+                               th:value="${search}" id="searchInput"/>
+                    </div>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les statuts</option>
+                        <option value="TODO"        th:selected="${filterStatus == 'TODO'}">À faire</option>
+                        <option value="IN_PROGRESS" th:selected="${filterStatus == 'IN_PROGRESS'}">En cours</option>
+                        <option value="DONE"        th:selected="${filterStatus == 'DONE'}">Terminées</option>
+                    </select>
+                    <select name="priority" class="form-select" onchange="this.form.submit()">
+                        <option value="">Toutes priorités</option>
+                        <option value="CRITICAL" th:selected="${filterPriority == 'CRITICAL'}">🔴 Critique</option>
+                        <option value="HIGH"     th:selected="${filterPriority == 'HIGH'}">🟠 Haute</option>
+                        <option value="MEDIUM"   th:selected="${filterPriority == 'MEDIUM'}">🟡 Moyenne</option>
+                        <option value="LOW"      th:selected="${filterPriority == 'LOW'}">🟢 Basse</option>
+                    </select>
+                    <select name="projectId" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les projets</option>
+                        <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"
+                                th:selected="${filterProjectId == p.id}">Projet</option>
+                    </select>
+                    <a th:href="@{/tasks}" class="btn btn-ghost btn-sm">Réinitialiser</a>
+                </form>
+                <button class="btn btn-primary" onclick="openModal('taskModal')">+ Nouvelle tâche</button>
+            </div>
+
+            <!-- View switch -->
+            <div class="view-tabs">
+                <button class="view-tab active" id="kanbanTab" onclick="switchView('kanban')">⬜ Kanban</button>
+                <button class="view-tab" id="listTab" onclick="switchView('list')">📋 Liste</button>
+            </div>
+
+            <!-- Kanban -->
+            <div id="kanbanView" class="kanban-board">
+                <div class="kanban-col" id="col-TODO" data-status="TODO" ondragover="dragOver(event)" ondrop="drop(event)">
+                    <div class="kanban-col-header">
+                        <div class="col-title">
+                            <span class="priority-dot dot-todo"></span>
+                            <h3>À faire</h3>
+                            <span class="col-count" id="count-TODO">0</span>
+                        </div>
+                        <button class="add-task-col" onclick="openNewTaskModal('TODO')">+</button>
+                    </div>
+                    <div class="kanban-cards" id="cards-TODO">
+                        <div th:each="t : ${tasks}" th:if="${t.status == 'TODO'}"
+                             class="task-card" th:attr="data-id=${t.id},data-status='TODO'"
+                             draggable="true" ondragstart="dragStart(event)" onclick="openTaskDetail(this.dataset.id)">
+                            <div th:replace="~{fragments/taskcard :: card(${t})}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kanban-col" id="col-IN_PROGRESS" data-status="IN_PROGRESS" ondragover="dragOver(event)" ondrop="drop(event)">
+                    <div class="kanban-col-header">
+                        <div class="col-title">
+                            <span class="priority-dot dot-progress"></span>
+                            <h3>En cours</h3>
+                            <span class="col-count" id="count-IN_PROGRESS">0</span>
+                        </div>
+                        <button class="add-task-col" onclick="openNewTaskModal('IN_PROGRESS')">+</button>
+                    </div>
+                    <div class="kanban-cards" id="cards-IN_PROGRESS">
+                        <div th:each="t : ${tasks}" th:if="${t.status == 'IN_PROGRESS'}"
+                             class="task-card" th:attr="data-id=${t.id},data-status='IN_PROGRESS'"
+                             draggable="true" ondragstart="dragStart(event)" onclick="openTaskDetail(this.dataset.id)">
+                            <div th:replace="~{fragments/taskcard :: card(${t})}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kanban-col" id="col-DONE" data-status="DONE" ondragover="dragOver(event)" ondrop="drop(event)">
+                    <div class="kanban-col-header">
+                        <div class="col-title">
+                            <span class="priority-dot dot-done"></span>
+                            <h3>Terminées</h3>
+                            <span class="col-count" id="count-DONE">0</span>
+                        </div>
+                        <button class="add-task-col" onclick="openNewTaskModal('DONE')">+</button>
+                    </div>
+                    <div class="kanban-cards" id="cards-DONE">
+                        <div th:each="t : ${tasks}" th:if="${t.status == 'DONE'}"
+                             class="task-card" th:attr="data-id=${t.id},data-status='DONE'"
+                             draggable="true" ondragstart="dragStart(event)" onclick="openTaskDetail(this.dataset.id)">
+                            <div th:replace="~{fragments/taskcard :: card(${t})}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vue Liste -->
+            <div id="listView" class="hidden">
+                <div class="card">
+                    <table class="task-table">
+                        <thead>
+                        <tr>
+                            <th>Tâche</th>
+                            <th>Projet</th>
+                            <th>Assigné à</th>
+                            <th>Priorité</th>
+                            <th>Statut</th>
+                            <th>Échéance</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="t : ${tasks}" th:classappend="${t.overdue} ? ' row-overdue'">
+                            <td>
+                                <div class="task-title-cell" onclick="openTaskDetail([[${t.id}]])" style="cursor:pointer">
+                                    <span th:class="'priority-dot dot-' + ${t.priority.toLowerCase()}"></span>
+                                    <span th:text="${t.title}">Titre</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span th:if="${t.project != null}" class="project-tag"
+                                      th:style="'background:' + ${t.project.color} + '22; color:' + ${t.project.color}"
+                                      th:text="${t.project.name}">Projet</span>
+                                <span th:if="${t.project == null}" class="text-muted">—</span>
+                            </td>
+                            <td>
+                                <div th:if="${t.assignedTo != null}" class="assignee-cell">
+                                    <span class="avatar avatar-xs" th:style="'background:' + ${t.assignedTo.avatarColor}"
+                                          th:text="${t.assignedTo.initials}"></span>
+                                    <span th:text="${t.assignedTo.fullName}">Nom</span>
+                                </div>
+                                <span th:if="${t.assignedTo == null}" class="text-muted">Non assigné</span>
+                            </td>
+                            <td><span th:class="'badge ' + ${t.priorityBadgeClass}" th:text="${t.priorityLabel}"></span></td>
+                            <td><span th:class="'badge ' + ${t.statusBadgeClass}" th:text="${t.statusLabel}"></span></td>
+                            <td>
+                                <span th:if="${t.dueDate != null}"
+                                      th:classappend="${t.overdue} ? ' text-danger' : (${t.dueSoon} ? ' text-warning' : '')"
+                                      th:text="${t.dueDate}">Date</span>
+                                <span th:if="${t.dueDate == null}" class="text-muted">—</span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <button class="btn-icon" title="Éditer" th:attr="onclick='editTask(' + ${t.id} + ')'">✏️</button>
+                                    <button class="btn-icon text-danger" title="Supprimer" th:attr="onclick='deleteTask(' + ${t.id} + ')'">🗑</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(tasks)}">
+                            <td colspan="7" class="empty-table">Aucune tâche trouvée.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: mobileNav}"></div>
+
+<!-- Modal Tâche -->
+<div class="modal-overlay hidden" id="taskModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 id="taskModalTitle">Nouvelle tâche</h3>
+            <button onclick="closeModal('taskModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="task-id"/>
+            <div class="form-group">
+                <label>Titre *</label>
+                <input type="text" id="task-title" class="form-input" placeholder="Titre de la tâche"/>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="task-desc" class="form-input form-textarea" placeholder="Description détaillée..."></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Projet</label>
+                    <select id="task-project" class="form-select">
+                        <option value="">Aucun projet</option>
+                        <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}">Projet</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Assigné à</label>
+                    <select id="task-assignee" class="form-select">
+                        <option value="">Non assigné</option>
+                        <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.fullName ?: u.username}">Membre</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select id="task-status" class="form-select">
+                        <option value="TODO">À faire</option>
+                        <option value="IN_PROGRESS">En cours</option>
+                        <option value="DONE">Terminée</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priorité</label>
+                    <select id="task-priority" class="form-select">
+                        <option value="LOW">🟢 Basse</option>
+                        <option value="MEDIUM" selected>🟡 Moyenne</option>
+                        <option value="HIGH">🟠 Haute</option>
+                        <option value="CRITICAL">🔴 Critique</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date d'échéance</label>
+                    <input type="date" id="task-due" class="form-input"/>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('taskModal')" class="btn btn-ghost">Annuler</button>
+            <button onclick="saveTask()" class="btn btn-primary" id="taskSaveBtn">Créer la tâche</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détail Tâche -->
+<div class="modal-overlay hidden" id="taskDetailModal">
+    <div class="modal modal-xl">
+        <div class="modal-header">
+            <h3 id="detail-title">Détail</h3>
+            <div class="modal-header-actions">
+                <button class="btn btn-ghost btn-sm" id="detail-edit-btn">✏️ Éditer</button>
+                <button onclick="closeModal('taskDetailModal')" class="modal-close">✕</button>
+            </div>
+        </div>
+        <div class="modal-body task-detail-body" id="taskDetailBody">
+            <div class="loading">Chargement</div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+const USERS_DATA    = /*[[${usersSimple}]]*/ [];
+const PROJECTS_DATA = /*[[${projectsSimple}]]*/ [];
+</script>
+<script th:src="@{/js/app.js}"></script>
+<script>
+['TODO','IN_PROGRESS','DONE'].forEach(s => {
+    const count = document.querySelectorAll(`#cards-${s} .task-card`).length;
+    document.getElementById(`count-${s}`).textContent = count;
+});
+</script>
+</body>
+</html>

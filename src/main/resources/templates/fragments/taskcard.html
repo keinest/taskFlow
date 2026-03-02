@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<body>
+<div th:fragment="card(task)" class="task-card-inner">
+    <div class="task-card-header">
+        <span th:class="'priority-dot dot-' + ${task.priority.toLowerCase()}"></span>
+        <span th:if="${task.project != null}" class="task-card-project"
+              th:style="'background:' + ${task.project.color}"></span>
+    </div>
+    <p class="task-card-title" th:text="${task.title}">Titre tâche</p>
+    <div class="task-card-meta">
+        <div th:if="${task.assignedTo != null}" class="assignee-cell">
+            <div class="avatar avatar-xs"
+                 th:style="'background:' + ${task.assignedTo.avatarColor}"
+                 th:text="${task.assignedTo.initials}"></div>
+        </div>
+        <div th:if="${task.dueDate != null}"
+             th:class="'task-card-due' + (${task.overdue} ? ' overdue' : (${task.dueSoon} ? ' soon' : ''))">
+            <span>📅</span>
+            <span th:text="${task.dueDate}"></span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

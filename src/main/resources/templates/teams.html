@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Teams', 'teams.css')}"></head>
+<body class="app-body">
+
+<div class="app-layout">
+    <div th:replace="~{fragments/layout :: sidebar}"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/layout :: topbar('Teams')}"></div>
+
+        <div class="content-inner">
+            <div class="section-header">
+                <h2>Mes équipes</h2>
+                <button class="btn btn-primary" onclick="showCreateTeamModal()">+ Créer une team</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs-bar">
+                <button class="tab-btn active" onclick="switchTab('my-teams', this)">Mes Teams</button>
+                <button class="tab-btn" onclick="switchTab('public-teams', this)">Teams Publiques</button>
+                <button class="tab-btn" onclick="switchTab('suggestions', this)">Suggestions</button>
+            </div>
+
+            <!-- Tab: Mes Teams -->
+            <div id="my-teams" class="tab-content active">
+                <div th:if="${#lists.isEmpty(userTeams)}" class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3>Vous n'êtes dans aucune équipe</h3>
+                    <p>Rejoignez ou créez une équipe pour collaborer</p>
+                    <button class="btn btn-primary" onclick="showCreateTeamModal()">Créer une team</button>
+                </div>
+                <div class="teams-grid" th:unless="${#lists.isEmpty(userTeams)}">
+                    <div class="team-card" th:each="team : ${userTeams}">
+                        <div class="team-card-header" th:style="'background-color:' + ${team.color}">
+                            <span class="team-member-badge" th:text="${team.getMemberCount()} + ' membres'"></span>
+                        </div>
+                        <div class="team-card-body">
+                            <h3 th:text="${team.name}"></h3>
+                            <p class="team-description" th:text="${team.description != null ? team.description : 'Pas de description'}"></p>
+                            <div class="team-card-actions">
+                                <a th:href="'/teams/' + ${team.id}" class="btn btn-primary btn-sm">Voir détails</a>
+                                <span th:if="${user.id == team.creator.id}" class="creator-badge">👑 Chef</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Teams Publiques -->
+            <div id="public-teams" class="tab-content">
+                <div th:if="${#lists.isEmpty(publicTeams)}" class="empty-state">
+                    <div class="empty-icon">🌐</div>
+                    <h3>Aucune team publique</h3>
+                </div>
+                <div class="teams-grid" th:unless="${#lists.isEmpty(publicTeams)}">
+                    <div class="team-card" th:each="team : ${publicTeams}">
+                        <div class="team-card-header" th:style="'background-color:' + ${team.color}">
+                            <span class="team-member-badge" th:text="${team.getMemberCount()} + ' membres'"></span>
+                        </div>
+                        <div class="team-card-body">
+                            <h3 th:text="${team.name}"></h3>
+                            <p class="team-description" th:text="${team.description != null ? team.description : 'Pas de description'}"></p>
+                            <div class="team-info">
+                                <small th:text="'Chef : ' + ${team.creator.username}"></small>
+                            </div>
+                            <div class="team-card-actions">
+                                <a th:href="'/teams/' + ${team.id}" class="btn btn-secondary btn-sm">Voir</a>
+                                <button th:onclick="'requestJoinTeam(' + ${team.id} + ')'"
+                                        class="btn btn-primary btn-sm">Demander</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Suggestions -->
+            <div id="suggestions" class="tab-content">
+                <p class="team-info">💡 Des équipes qui pourraient vous intéresser</p>
+                <div th:if="${#lists.isEmpty(suggestions)}" class="empty-state">
+                    <div class="empty-icon">💡</div>
+                    <h3>Pas de suggestions disponibles</h3>
+                </div>
+                <div class="teams-grid" th:unless="${#lists.isEmpty(suggestions)}">
+                    <div class="team-card" th:each="team : ${suggestions}">
+                        <div class="team-card-header" th:style="'background-color:' + ${team.color}">
+                            <span class="team-member-badge" th:text="${team.getMemberCount()} + ' membres'"></span>
+                        </div>
+                        <div class="team-card-body">
+                            <h3 th:text="${team.name}"></h3>
+                            <p class="team-description" th:text="${team.description != null ? team.description : 'Pas de description'}"></p>
+                            <div class="team-info">
+                                <small th:text="'Chef : ' + ${team.creator.username}"></small>
+                            </div>
+                            <div class="team-card-actions">
+                                <button th:onclick="'requestJoinTeam(' + ${team.id} + ')'"
+                                        class="btn btn-primary btn-full btn-sm">Demander à rejoindre</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: mobileNav}"></div>
+
+<!-- Modal Créer Team -->
+<div class="modal-overlay hidden" id="createTeamModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Créer une nouvelle team</h3>
+            <button onclick="closeModal('createTeamModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nom de la team *</label>
+                <input type="text" id="teamName" class="form-input" placeholder="Mon équipe" required/>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="teamDesc" class="form-input form-textarea" rows="3" placeholder="Décrivez votre équipe..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-row">
+                    <input type="checkbox" id="teamPublic" checked/>
+                    <span>Rendre publique (visible par tous)</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('createTeamModal')" class="btn btn-ghost">Annuler</button>
+            <button onclick="submitCreateTeam()" class="btn btn-primary">Créer la team</button>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+<script>
+function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    if (btn) btn.classList.add('active');
+}
+
+function showCreateTeamModal() {
+    openModal('createTeamModal');
+}
+
+async function submitCreateTeam() {
+    const name = document.getElementById('teamName').value.trim();
+    if (!name) { showToast('Le nom est requis', 'error'); return; }
+    try {
+        const res = await fetch('/api/teams', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                description: document.getElementById('teamDesc').value,
+                isPublic: document.getElementById('teamPublic').checked
+            })
+        });
+        const data = await res.json();
+        if (data.error) { showToast(data.error, 'error'); return; }
+        showToast('Team créée ! 🎉', 'success');
+        setTimeout(() => location.reload(), 700);
+    } catch { showToast('Erreur réseau', 'error'); }
+}
+
+function requestJoinTeam(teamId) {
+    if (!confirm('Demander à rejoindre cette team ?')) return;
+    fetch(`/api/teams/${teamId}/request-join`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message || d.error, d.error ? 'error' : 'success');
+            if (!d.error) setTimeout(() => location.reload(), 700);
+        })
+        .catch(() => showToast('Erreur', 'error'));
+}
+</script>
+</body>
+</html>

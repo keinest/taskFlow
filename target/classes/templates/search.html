@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Recherche', 'search.css')}"></head>
+<body class="app-body">
+
+<div class="app-layout">
+    <div th:replace="~{fragments/layout :: sidebar}"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/layout :: topbar('Recherche')}"></div>
+
+        <div class="content-inner">
+
+            <!-- Hero search -->
+            <div class="search-hero">
+                <h2>Recherche globale</h2>
+                <div class="search-input-hero">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="mainSearchInput"
+                           th:value="${query}"
+                           placeholder="Rechercher dans les tâches, projets, équipes..."
+                           onkeydown="if(event.key==='Enter') doSearch()"/>
+                </div>
+                <div class="search-filters">
+                    <button class="search-filter-btn active" data-filter="all" onclick="filterResults('all', this)">Tout</button>
+                    <button class="search-filter-btn" data-filter="tasks" onclick="filterResults('tasks', this)">✅ Tâches</button>
+                    <button class="search-filter-btn" data-filter="projects" onclick="filterResults('projects', this)">📁 Projets</button>
+                    <button class="search-filter-btn" data-filter="teams" onclick="filterResults('teams', this)">👥 Teams</button>
+                </div>
+            </div>
+
+            <!-- Results when query exists -->
+            <div th:if="${query != null and !#strings.isEmpty(query)}">
+                <p class="search-results-meta">
+                    <strong th:text="${totalResults ?: 0}">0</strong>
+                    résultat(s) pour "<strong th:text="${query}"></strong>"
+                </p>
+
+                <!-- Tasks results -->
+                <div class="search-section" id="section-tasks" th:if="${tasks != null and !#lists.isEmpty(tasks)}">
+                    <div class="search-section-title">✅ Tâches</div>
+                    <div th:each="t : ${tasks}" class="search-result-item" onclick="openTaskDetail([[${t.id}]])">
+                        <span class="search-result-icon">✅</span>
+                        <div class="search-result-content">
+                            <div class="search-result-title" th:text="${t.title}"></div>
+                            <div class="search-result-meta">
+                                <span th:if="${t.project != null}" th:text="${t.project.name} + ' · '"></span>
+                                <span th:if="${t.assignedTo != null}" th:text="${t.assignedTo.fullName}"></span>
+                            </div>
+                        </div>
+                        <div class="search-result-badge">
+                            <span th:class="'badge ' + ${t.statusBadgeClass}" th:text="${t.statusLabel}"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects results -->
+                <div class="search-section" id="section-projects" th:if="${projects != null and !#lists.isEmpty(projects)}">
+                    <div class="search-section-title">📁 Projets</div>
+                    <a th:each="p : ${projects}" th:href="@{/projects}" class="search-result-item">
+                        <span class="search-result-icon">📁</span>
+                        <div class="search-result-content">
+                            <div class="search-result-title" th:text="${p.name}"></div>
+                            <div class="search-result-meta" th:text="${p.description ?: 'Aucune description'}"></div>
+                        </div>
+                        <div class="search-result-badge">
+                            <span class="badge badge-progress" th:text="${p.progressPercent} + '%'"></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Teams results -->
+                <div class="search-section" id="section-teams" th:if="${teams != null and !#lists.isEmpty(teams)}">
+                    <div class="search-section-title">👥 Teams</div>
+                    <a th:each="t : ${teams}" th:href="'/teams/' + ${t.id}" class="search-result-item">
+                        <span class="search-result-icon">👥</span>
+                        <div class="search-result-content">
+                            <div class="search-result-title" th:text="${t.name}"></div>
+                            <div class="search-result-meta" th:text="${t.memberCount} + ' membres'"></div>
+                        </div>
+                        <div class="search-result-badge">
+                            <span th:class="'badge ' + (${t.isPublic} ? 'badge-done' : 'badge-todo')"
+                                  th:text="${t.isPublic} ? 'Publique' : 'Privée'"></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- No results -->
+                <div th:if="${totalResults == 0 or totalResults == null}" class="search-empty">
+                    <div class="search-empty-icon">🔍</div>
+                    <h3>Aucun résultat</h3>
+                    <p>Essayez d'autres mots-clés ou vérifiez l'orthographe.</p>
+                </div>
+            </div>
+
+            <!-- Empty state when no query -->
+            <div th:if="${query == null or #strings.isEmpty(query)}" class="search-empty">
+                <div class="search-empty-icon">🔍</div>
+                <h3>Commencez à chercher</h3>
+                <p>Tapez un mot-clé pour rechercher dans vos tâches, projets et équipes.</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Task detail modal -->
+<div class="modal-overlay hidden" id="taskDetailModal">
+    <div class="modal modal-xl">
+        <div class="modal-header">
+            <h3 id="detail-title">Détail</h3>
+            <button onclick="closeModal('taskDetailModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body task-detail-body" id="taskDetailBody">
+            <div class="loading">Chargement...</div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: mobileNav}"></div>
+
+<script th:src="@{/js/app.js}"></script>
+<script th:inline="javascript">
+const CURRENT_QUERY = /*[[${query}]]*/ '';
+
+function doSearch() {
+    const q = document.getElementById('mainSearchInput').value.trim();
+    if (q) window.location = '/search?q=' + encodeURIComponent(q);
+}
+
+function filterResults(filter, btn) {
+    document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sections = { tasks: 'section-tasks', projects: 'section-projects', teams: 'section-teams' };
+    if (filter === 'all') {
+        Object.values(sections).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = '';
+        });
+    } else {
+        Object.entries(sections).forEach(([key, id]) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = key === filter ? '' : 'none';
+        });
+    }
+}
+</script>
+</body>
+</html>

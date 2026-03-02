@@ -1,0 +1,118 @@
+/* ═══════════════════════════════════════════════════════════════
+   TASKFLOW — pages/projects.css
+   Page projets — Cards enrichies
+   ═══════════════════════════════════════════════════════════════ */
+
+.projects-full-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.project-full-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: all var(--duration-md) var(--ease);
+}
+.project-full-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-dark);
+}
+
+.project-full-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-full-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.proj-color-circle {
+  width: 40px; height: 40px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.project-full-title h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.project-full-title p {
+  font-size: 13px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+.project-full-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.project-full-body {
+  padding: 16px 20px 20px;
+}
+
+.project-stats-row {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.proj-stat {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.proj-stat:last-child { border-right: none; }
+
+.proj-stat-val {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.proj-stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.project-owner-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.project-owner-row .text-muted { font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  .projects-full-grid { grid-template-columns: 1fr; }
+}

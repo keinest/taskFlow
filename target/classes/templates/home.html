@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Accueil', 'home.css')}"></head>
+<body class="home-page">
+
+<!-- Navbar publique -->
+<nav class="navbar-public">
+    <div class="navbar-public-inner">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon">⚡</div>
+            <span class="nav-logo-text">TaskFlow</span>
+        </a>
+        <div class="navbar-actions">
+            <button class="navbar-theme-btn" onclick="toggleTheme()" id="themeToggle" title="Changer le thème">🌙</button>
+            <!-- Si connecté -->
+            <th:block th:if="${isAuthenticated}">
+                <span th:if="${user != null}" style="font-size:13.5px;color:var(--text-3);font-weight:500"
+                      th:text="'Bonjour, ' + ${user.fullName ?: user.username} + ' 👋'"></span>
+                <a href="/dashboard" class="btn btn-secondary btn-sm">📊 Tableau de bord</a>
+            </th:block>
+            <!-- Si visiteur -->
+            <th:block th:unless="${isAuthenticated}">
+                <a href="/login" class="btn btn-secondary btn-sm">Se connecter</a>
+                <a href="/register" class="btn btn-primary btn-sm">S'inscrire</a>
+            </th:block>
+        </div>
+    </div>
+</nav>
+
+<main class="home-container">
+
+    <!-- Hero -->
+    <section class="hero-section">
+        <div class="hero-eyebrow">🚀 Gestion de tâches collaborative</div>
+        <h1 class="hero-title">
+            Travaillez mieux,<br>
+            <span class="gradient-text">ensemble.</span>
+        </h1>
+        <p class="hero-subtitle">
+            TaskFlow réunit vos équipes, vos projets et vos tâches en une plateforme intuitive et puissante.
+        </p>
+        <div class="hero-actions">
+            <a href="/register" class="btn btn-primary btn-lg">Créer un compte gratuit</a>
+            <a href="/login" class="btn btn-secondary btn-lg">Se connecter</a>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value" th:text="${publicTeamsCount}">0</div>
+                <div class="hero-stat-label">Teams actives</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">∞</div>
+                <div class="hero-stat-label">Possibilités</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">100%</div>
+                <div class="hero-stat-label">Gratuit</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features-section">
+        <h2 class="section-title">Pourquoi TaskFlow ?</h2>
+        <p class="section-subtitle">Tout ce dont votre équipe a besoin pour être productive</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Collaboration</h3>
+                <p>Créez des équipes, invitez vos collègues et collaborez en temps réel sur tous vos projets.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✅</div>
+                <h3>Gestion de tâches</h3>
+                <p>Organisez votre travail avec un kanban intuitif, des priorités claires et un suivi précis.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3>Commentaires</h3>
+                <p>Discutez directement sur les tâches. Chaque décision, au bon endroit.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h3>Notifications</h3>
+                <p>Restez informé des mises à jour importantes sans être noyé sous les alertes.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Tableaux de bord</h3>
+                <p>Visualisez la progression de vos projets avec des graphiques clairs et actionnables.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Performance</h3>
+                <p>Identifiez les goulots d'étranglement et boostez la productivité de votre équipe.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Teams publiques -->
+    <section class="public-teams-section" th:if="${publicTeams != null and publicTeams.size() > 0}">
+        <h2 class="section-title">Rejoignez une équipe</h2>
+        <p class="section-subtitle">Découvrez les équipes actives sur la plateforme</p>
+        <div class="teams-preview-grid">
+            <div class="team-preview-card" th:each="team : ${publicTeams}">
+                <div class="team-preview-header" th:style="'background-color:' + ${team.color}">
+                    <span class="team-preview-member-count" th:text="${team.memberCount} + ' membres'"></span>
+                </div>
+                <div class="team-preview-body">
+                    <h3 th:text="${team.name}"></h3>
+                    <p th:text="${team.description != null ? team.description : 'Pas de description'}"></p>
+                    <div class="team-preview-meta">
+                        <span th:text="'Créée par ' + ${team.creator.username}"></span>
+                    </div>
+                    <a th:href="'/teams/' + ${team.id}" class="btn btn-primary btn-sm">Voir l'équipe</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <h2>Prêt à commencer ?</h2>
+        <p>Créez un compte gratuit et rejoignez une communauté de professionnels productifs.</p>
+        <a href="/register" class="btn btn-white btn-lg">S'inscrire maintenant →</a>
+    </section>
+
+</main>
+
+<script>
+// Theme toggle pour la page publique
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('taskflow-theme', next);
+    document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+}
+
+// Init theme
+(function() {
+    const saved = localStorage.getItem('taskflow-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+</script>
+</body>
+</html>

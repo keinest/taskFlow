@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Détails Team', 'teams.css')}"></head>
+<body class="app-body">
+
+<div class="app-layout">
+    <div th:replace="~{fragments/layout :: sidebar}"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/layout :: topbar('Détails Team')}"></div>
+
+        <div class="content-inner">
+            <!-- Hero -->
+            <div class="team-detail-hero" th:style="'background-color:' + ${team.color}">
+                <div class="team-detail-hero-content">
+                    <a href="/teams" class="team-detail-hero-back">← Retour aux teams</a>
+                    <h1 th:text="${team.name}">Nom de la team</h1>
+                    <div class="team-detail-hero-meta">
+                        <span th:text="${team.memberCount} + ' membres'"></span>
+                        <span th:text="'Créée par ' + ${team.creator.fullName ?: team.creator.username}"></span>
+                        <span th:text="${team.isPublic} ? '🌐 Publique' : '🔒 Privée'"></span>
+                    </div>
+                </div>
+                <div class="team-detail-hero-actions" th:if="${isCreator}">
+                    <button class="btn btn-secondary" onclick="showEditModal()">✏️ Modifier</button>
+                    <button class="btn btn-danger" onclick="deleteTeam()">🗑️ Supprimer</button>
+                </div>
+            </div>
+
+            <!-- Content layout -->
+            <div class="team-detail-grid">
+                <!-- Left -->
+                <div class="team-detail-main">
+                    <!-- Description -->
+                    <div class="card" style="margin-bottom:20px">
+                        <div class="card-header"><h3>À propos</h3></div>
+                        <div class="card-body">
+                            <p th:text="${team.description != null ? team.description : 'Pas de description'}"></p>
+                        </div>
+                    </div>
+
+                    <!-- Members -->
+                    <div class="card" style="margin-bottom:20px">
+                        <div class="card-header">
+                            <h3>Membres</h3>
+                            <span class="badge badge-info" th:text="${team.memberCount} + ' membres'"></span>
+                        </div>
+                        <div class="card-body">
+                            <div class="members-list">
+                                <!-- Creator -->
+                                <div class="member-item">
+                                    <div class="avatar" th:style="'background:' + ${team.creator.avatarColor}"
+                                         th:text="${team.creator.getInitials()}"></div>
+                                    <div class="member-info">
+                                        <strong th:text="${team.creator.fullName ?: team.creator.username}"></strong>
+                                        <small>👑 Chef de team</small>
+                                    </div>
+                                </div>
+                                <!-- Members -->
+                                <div class="member-item" th:each="member : ${team.members}">
+                                    <div class="avatar" th:style="'background:' + ${member.avatarColor}"
+                                         th:text="${member.getInitials()}"></div>
+                                    <div class="member-info">
+                                        <strong th:text="${member.fullName ?: member.username}"></strong>
+                                        <small>Membre</small>
+                                    </div>
+                                    <button th:if="${isCreator}"
+                                            th:attr="onclick='removeMember(' + ${member.id} + ')'"
+                                            class="btn-icon text-danger" title="Retirer" style="margin-left:auto">✕</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Join Requests (creator only) -->
+                    <div class="card" th:if="${isCreator}">
+                        <div class="card-header"><h3>Demandes d'adhésion</h3></div>
+                        <div class="card-body">
+                            <div id="joinRequests">
+                                <div class="loading">Chargement</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar -->
+                <div>
+                    <!-- Non membre -->
+                    <div th:if="${!isMember and !isCreator}" class="action-card">
+                        <h3>🚀 Rejoindre</h3>
+                        <p>Faites partie de cette équipe pour collaborer avec ses membres</p>
+                        <button class="btn btn-primary btn-full" onclick="requestJoinTeam()">Demander à rejoindre</button>
+                    </div>
+
+                    <!-- Membre -->
+                    <div th:if="${isMember}" class="action-card">
+                        <h3>✅ Vous êtes membre</h3>
+                        <p>Vous faites partie de cette équipe</p>
+                        <button class="btn btn-secondary btn-full" onclick="leaveTeam()">Quitter la team</button>
+                    </div>
+
+                    <!-- Créateur -->
+                    <div th:if="${isCreator}" class="action-card">
+                        <h3>👑 Vous êtes chef</h3>
+                        <p>Gérez les membres et les paramètres de l'équipe</p>
+                        <button class="btn btn-primary btn-full" onclick="showInviteModal()">👥 Inviter des membres</button>
+                    </div>
+
+                    <!-- Team info card -->
+                    <div class="card" style="margin-top:16px">
+                        <div class="card-header"><h3>Informations</h3></div>
+                        <div class="card-body">
+                            <div style="display:flex;flex-direction:column;gap:12px">
+                                <div>
+                                    <div class="detail-meta-label">Visibilité</div>
+                                    <div class="detail-meta-value" th:text="${team.isPublic} ? '🌐 Publique' : '🔒 Privée'"></div>
+                                </div>
+                                <div>
+                                    <div class="detail-meta-label">Membres</div>
+                                    <div class="detail-meta-value" th:text="${team.memberCount} + ' personnes'"></div>
+                                </div>
+                                <div>
+                                    <div class="detail-meta-label">Créateur</div>
+                                    <div class="assignee-cell">
+                                        <div class="avatar avatar-xs" th:style="'background:' + ${team.creator.avatarColor}"
+                                             th:text="${team.creator.getInitials()}"></div>
+                                        <span class="detail-meta-value" th:text="${team.creator.fullName ?: team.creator.username}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: mobileNav}"></div>
+
+<!-- Modal: Modifier -->
+<div class="modal-overlay hidden" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Modifier la team</h3>
+            <button onclick="closeModal('editModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nom *</label>
+                <input type="text" id="editTeamName" class="form-input" th:value="${team.name}" required/>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editTeamDesc" class="form-input form-textarea" rows="3"
+                          th:text="${team.description}"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-row" style="display:flex;align-items:center;gap:8px">
+                    <input type="checkbox" id="editTeamPublic" th:checked="${team.isPublic}"
+                           style="width:16px;height:16px;accent-color:var(--primary)"/>
+                    <span>Rendre publique</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('editModal')" class="btn btn-ghost">Annuler</button>
+            <button onclick="submitEditTeam()" class="btn btn-primary">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Inviter -->
+<div class="modal-overlay hidden" id="inviteModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Inviter des membres</h3>
+            <button onclick="closeModal('inviteModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Sélectionner un utilisateur</label>
+                <select id="userSelect" class="form-select"></select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('inviteModal')" class="btn btn-ghost">Annuler</button>
+            <button onclick="submitInvite()" class="btn btn-primary">Envoyer l'invitation</button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+const TEAM_ID   = /*[[${team.id}]]*/ null;
+const IS_CREATOR = /*[[${isCreator}]]*/ false;
+</script>
+<script th:src="@{/js/app.js}"></script>
+<script>
+// Charger les demandes d'adhésion
+if (IS_CREATOR) {
+    fetch(`/api/teams/${TEAM_ID}/join-requests`)
+        .then(r => r.json())
+        .then(requests => {
+            const container = document.getElementById('joinRequests');
+            if (!Array.isArray(requests) || requests.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="font-size:var(--text-sm)">Aucune demande en attente</p>';
+                return;
+            }
+            container.innerHTML = requests.map(r => `
+                <div class="join-request-item">
+                    <div class="join-request-user">
+                        <div class="avatar avatar-sm" style="background:${r.avatarColor}">${r.username.substring(0,2).toUpperCase()}</div>
+                        <div>
+                            <strong style="font-size:var(--text-sm)">${r.fullName}</strong>
+                            <div style="font-size:var(--text-xs);color:var(--text-4)">@${r.username}</div>
+                        </div>
+                    </div>
+                    <div class="join-request-actions">
+                        <button class="btn btn-primary btn-sm" onclick="approveRequest(${r.notificationId})">✓ Accepter</button>
+                        <button class="btn btn-ghost btn-sm" onclick="rejectRequest(${r.notificationId})">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {});
+}
+
+async function approveRequest(notifId) {
+    const r = await fetch(`/api/teams/${TEAM_ID}/approve-request/${notifId}`, { method: 'POST' });
+    const d = await r.json();
+    showToast(d.message || d.error, d.error ? 'error' : 'success');
+    if (!d.error) setTimeout(() => location.reload(), 700);
+}
+
+async function rejectRequest(notifId) {
+    const r = await fetch(`/api/teams/${TEAM_ID}/reject-request/${notifId}`, { method: 'POST' });
+    const d = await r.json();
+    showToast(d.message || d.error, d.error ? 'error' : 'success');
+    if (!d.error) setTimeout(() => location.reload(), 700);
+}
+
+function requestJoinTeam() {
+    fetch(`/api/teams/${TEAM_ID}/request-join`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => showToast(d.message || d.error, d.error ? 'error' : 'success'))
+        .catch(() => showToast('Erreur', 'error'));
+}
+
+function leaveTeam() {   // BUG FIX: était "leaveTeam"
+    if (!confirm('Quitter cette team ?')) return;
+    fetch(`/api/teams/${TEAM_ID}/leave`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message || d.error, d.error ? 'error' : 'success');
+            if (!d.error) setTimeout(() => window.location = '/teams', 700);
+        })
+        .catch(() => showToast('Erreur', 'error'));
+}
+
+function deleteTeam() {
+    if (!confirm('Supprimer définitivement cette team ?')) return;
+    fetch(`/api/teams/${TEAM_ID}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message || d.error, d.error ? 'error' : 'success');
+            if (!d.error) setTimeout(() => window.location = '/teams', 700);
+        })
+        .catch(() => showToast('Erreur', 'error'));
+}
+
+function showEditModal() {
+    openModal('editModal');
+}
+
+async function submitEditTeam() {
+    const r = await fetch(`/api/teams/${TEAM_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name:        document.getElementById('editTeamName').value,
+            description: document.getElementById('editTeamDesc').value,
+            isPublic:    document.getElementById('editTeamPublic').checked
+        })
+    });
+    const d = await r.json();
+    showToast(d.error || 'Team mise à jour !', d.error ? 'error' : 'success');
+    if (!d.error) setTimeout(() => location.reload(), 700);
+}
+
+function showInviteModal() {
+    fetch('/api/users')
+        .then(r => r.json())
+        .then(users => {
+            const sel = document.getElementById('userSelect');
+            sel.innerHTML = users.map(u => `<option value="${u.id}">${u.fullName || u.username}</option>`).join('');
+            openModal('inviteModal');
+        })
+        .catch(() => showToast('Impossible de charger les utilisateurs', 'error'));
+}
+
+async function submitInvite() {
+    const userId = document.getElementById('userSelect').value;
+    const r = await fetch(`/api/teams/${TEAM_ID}/invite/${userId}`, { method: 'POST' });
+    const d = await r.json();
+    showToast(d.message || d.error, d.error ? 'error' : 'success');
+    if (!d.error) closeModal('inviteModal');
+}
+
+function removeMember(userId) {
+    if (!confirm('Retirer ce membre ?')) return;
+    fetch(`/api/teams/${TEAM_ID}/members/${userId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message || d.error, d.error ? 'error' : 'success');
+            if (!d.error) setTimeout(() => location.reload(), 700);
+        })
+        .catch(() => showToast('Erreur', 'error'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Tableau de bord', 'dashboard.css')}"></head>
+<body class="app-body">
+
+<div class="app-layout">
+    <div th:replace="~{fragments/layout :: sidebar}"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/layout :: topbar('Tableau de bord')}"></div>
+
+        <div class="content-inner">
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-body">
+                        <span class="stat-value" th:text="${stats.totalTasks}">0</span>
+                        <span class="stat-label">Total tâches</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-success">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-body">
+                        <span class="stat-value" th:text="${stats.doneTasks}">0</span>
+                        <span class="stat-label">Terminées</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-body">
+                        <span class="stat-value" th:text="${stats.inProgressTasks}">0</span>
+                        <span class="stat-label">En cours</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-danger">
+                    <div class="stat-icon">🔴</div>
+                    <div class="stat-body">
+                        <span class="stat-value" th:text="${stats.overdueTasks}">0</span>
+                        <span class="stat-label">En retard</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-info">
+                    <div class="stat-icon">👤</div>
+                    <div class="stat-body">
+                        <span class="stat-value" th:text="${stats.myTasks}">0</span>
+                        <span class="stat-label">Mes tâches</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-neutral">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-body">
+                        <span class="stat-value" th:text="${#lists.size(projects)}">0</span>
+                        <span class="stat-label">Projets actifs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphiques -->
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header"><h3>Répartition des statuts</h3></div>
+                    <div class="card-body chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Tâches par priorité</h3></div>
+                    <div class="card-body chart-container">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+                <div class="card card-full">
+                    <div class="card-header">
+                        <h3>⚠️ Tâches urgentes</h3>
+                        <a th:href="@{/tasks}" class="card-link">Voir toutes →</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${#lists.isEmpty(stats.overdue) and #lists.isEmpty(stats.dueSoon)}"
+                             class="empty-state-sm">Aucune tâche urgente 🎉</div>
+                        <div class="task-mini-list">
+                            <div th:each="t : ${stats.overdue}" class="task-mini task-overdue">
+                                <div class="task-mini-left">
+                                    <span class="priority-dot dot-critical"></span>
+                                    <div>
+                                        <p th:text="${t.title}">Titre</p>
+                                        <small>
+                                            <span th:if="${t.assignedTo != null}" th:text="'→ ' + ${t.assignedTo.fullName}"></span>
+                                            · Échéance : <span th:text="${t.dueDate}"></span>
+                                        </small>
+                                    </div>
+                                </div>
+                                <span class="badge badge-critical">En retard</span>
+                            </div>
+                            <div th:each="t : ${stats.dueSoon}" class="task-mini task-soon">
+                                <div class="task-mini-left">
+                                    <span class="priority-dot dot-high"></span>
+                                    <div>
+                                        <p th:text="${t.title}">Titre</p>
+                                        <small>
+                                            <span th:if="${t.assignedTo != null}" th:text="'→ ' + ${t.assignedTo.fullName}"></span>
+                                            · Dans <span th:text="${t.daysUntilDue} + ' j'"></span>
+                                        </small>
+                                    </div>
+                                </div>
+                                <span class="badge badge-high">Bientôt</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projets -->
+            <div class="section-header">
+                <h2>Projets</h2>
+                <button class="btn btn-primary btn-sm" onclick="openModal('projectModal')">+ Nouveau projet</button>
+            </div>
+            <div class="projects-grid">
+                <div th:each="p : ${projects}" class="project-card">
+                    <div class="project-color-bar" th:style="'background:' + ${p.color}"></div>
+                    <div class="project-card-body">
+                        <h4 th:text="${p.name}">Projet Alpha</h4>
+                        <p th:text="${p.description}">Description</p>
+                        <div class="project-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill"
+                                     th:style="'width:' + ${p.progressPercent} + '%; background:' + ${p.color}"></div>
+                            </div>
+                            <span th:text="${p.progressPercent} + '%'">0%</span>
+                        </div>
+                        <div class="project-meta">
+                            <span th:text="${p.taskCount} + ' tâches'">0 tâches</span>
+                            <span th:text="${p.doneCount} + ' terminées'">0 terminées</span>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(projects)}" class="empty-card">
+                    <p>Aucun projet. Créez le premier !</p>
+                </div>
+            </div>
+
+            <!-- Activité récente -->
+            <div class="section-header">
+                <h2>Activité récente</h2>
+                <a th:href="@{/tasks}" class="card-link">Voir toutes →</a>
+            </div>
+            <div class="card">
+                <div class="recent-tasks">
+                    <div th:each="t : ${stats.recentTasks}" class="recent-task-row"
+                         th:attr="data-id=${t.id}" onclick="openTaskDetail(this.dataset.id)">
+                        <div class="recent-left">
+                            <span th:class="'priority-dot dot-' + ${t.priority.toLowerCase()}"></span>
+                            <div>
+                                <p th:text="${t.title}"></p>
+                                <small>
+                                    <span th:if="${t.project != null}" th:text="${t.project.name} + ' · '"></span>
+                                    <span th:if="${t.assignedTo != null}" th:text="${t.assignedTo.fullName}"></span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="recent-right">
+                            <span th:class="'badge ' + ${t.statusBadgeClass}" th:text="${t.statusLabel}"></span>
+                            <span th:if="${t.overdue}" class="badge badge-critical">Retard</span>
+                        </div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(stats.recentTasks)}" class="empty-state-sm">
+                        Aucune tâche récente
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /content-inner -->
+    </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<div th:replace="~{fragments/layout :: mobileNav}"></div>
+
+<!-- Modal Projet -->
+<div class="modal-overlay hidden" id="projectModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Nouveau projet</h3>
+            <button onclick="closeModal('projectModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nom du projet *</label>
+                <input type="text" id="proj-name" class="form-input" placeholder="Mon super projet"/>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="proj-desc" class="form-input form-textarea" placeholder="Décrivez votre projet..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Couleur</label>
+                <div class="color-picker" id="proj-colors">
+                    <button type="button" class="color-swatch active" style="background:#0ea5e9" onclick="selectProjColor('#0ea5e9',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#06b6d4" onclick="selectProjColor('#06b6d4',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#3b82f6" onclick="selectProjColor('#3b82f6',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#8b5cf6" onclick="selectProjColor('#8b5cf6',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#ec4899" onclick="selectProjColor('#ec4899',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#10b981" onclick="selectProjColor('#10b981',this)"></button>
+                </div>
+                <input type="hidden" id="proj-color" value="#0ea5e9"/>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('projectModal')" class="btn btn-ghost">Annuler</button>
+            <button onclick="saveProject()" class="btn btn-primary">Créer le projet</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détail Tâche -->
+<div class="modal-overlay hidden" id="taskDetailModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 id="detail-title">Détail de la tâche</h3>
+            <button onclick="closeModal('taskDetailModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="taskDetailBody">
+            <div class="loading">Chargement</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+<script th:inline="javascript">
+const chartData = {
+    status: {
+        todo: [[${stats.byStatus['TODO']}]],
+        inProgress: [[${stats.byStatus['IN_PROGRESS']}]],
+        done: [[${stats.byStatus['DONE']}]]
+    },
+    priority: {
+        critical: [[${stats.byPriority['CRITICAL']}]],
+        high: [[${stats.byPriority['HIGH']}]],
+        medium: [[${stats.byPriority['MEDIUM']}]],
+        low: [[${stats.byPriority['LOW']}]]
+    }
+};
+initCharts(chartData);
+</script>
+</body>
+</html>

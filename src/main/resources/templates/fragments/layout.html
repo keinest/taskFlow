@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!-- ═══ Fragment HEAD (title, pageCss) ═══════════════════════ -->
+<head th:fragment="head(title, pageCss)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${title} + ' — TaskFlow'">TaskFlow</title>
+    <!-- Base CSS -->
+    <link rel="stylesheet" th:href="@{/css/variables.css}"/>
+    <link rel="stylesheet" th:href="@{/css/reset.css}"/>
+    <link rel="stylesheet" th:href="@{/css/layout.css}"/>
+    <link rel="stylesheet" th:href="@{/css/components.css}"/>
+    <!-- Page CSS -->
+    <link th:if="${pageCss != null}" rel="stylesheet" th:href="@{'/css/pages/' + ${pageCss}}"/>
+</head>
+
+<body>
+
+<!-- ═══ Fragment SIDEBAR ════════════════════════════════════ -->
+<nav th:fragment="sidebar" class="sidebar" id="sidebar">
+    <a th:href="@{/dashboard}" class="sidebar-logo">
+        <div class="sidebar-logo-icon">⚡</div>
+        <span class="sidebar-logo-text">TaskFlow</span>
+    </a>
+
+    <a th:href="@{/profile}" class="sidebar-user">
+        <div class="avatar avatar-sm" th:style="'background:' + ${user.avatarColor}" th:text="${user.initials}">AB</div>
+        <div class="sidebar-user-info">
+            <span class="sidebar-user-name" th:text="${user.fullName ?: user.username}">Alice Martin</span>
+            <span class="sidebar-user-role" th:text="${user.role}">ADMIN</span>
+        </div>
+    </a>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Menu</div>
+        <a th:href="@{/}" th:classappend="${page == 'home'} ? ' active'">
+            <span class="nav-icon">🏠</span><span>Accueil</span>
+        </a>
+        <a th:href="@{/dashboard}" th:classappend="${page == 'dashboard'} ? ' active'">
+            <span class="nav-icon">📊</span><span>Tableau de bord</span>
+        </a>
+        <a th:href="@{/tasks}" th:classappend="${page == 'tasks'} ? ' active'">
+            <span class="nav-icon">✅</span><span>Tâches</span>
+        </a>
+        <a th:href="@{/projects}" th:classappend="${page == 'projects'} ? ' active'">
+            <span class="nav-icon">📁</span><span>Projets</span>
+        </a>
+        <a th:href="@{/teams}" th:classappend="${page == 'teams'} ? ' active'">
+            <span class="nav-icon">👥</span><span>Teams</span>
+        </a>
+        <a th:href="@{/search}" th:classappend="${page == 'search'} ? ' active'">
+            <span class="nav-icon">🔍</span><span>Recherche</span>
+        </a>
+        <a th:href="@{/profile}" th:classappend="${page == 'profile'} ? ' active'">
+            <span class="nav-icon">👤</span><span>Mon profil</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button type="submit" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border-radius:var(--radius-sm);color:var(--text-3);font-size:13.5px;font-weight:500;transition:var(--transition);"
+                    onmouseover="this.style.background='var(--surface-3)';this.style.color='var(--danger)'"
+                    onmouseout="this.style.background='none';this.style.color='var(--text-3)'">
+                <span class="nav-icon">🚪</span><span>Déconnexion</span>
+            </button>
+        </form>
+    </div>
+</nav>
+
+<!-- ═══ Fragment TOPBAR (pageTitle) ═════════════════════════ -->
+<header th:fragment="topbar(pageTitle)" class="topbar">
+    <div class="topbar-left">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <h1 class="page-title" th:text="${pageTitle}">Page</h1>
+        <div class="topbar-search">
+            <span class="topbar-search-icon">🔍</span>
+            <input type="text" class="topbar-search-input" placeholder="Rechercher..."
+                   onkeydown="if(event.key==='Enter') window.location='/search?q='+encodeURIComponent(this.value)"/>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle" title="Changer le thème">🌙</button>
+        <div class="notif-wrapper">
+            <button class="notif-btn" onclick="toggleNotifPanel()">
+                🔔
+                <span class="notif-badge" th:if="${unreadCount > 0}" th:text="${unreadCount}">3</span>
+            </button>
+            <div class="notif-panel hidden" id="notifPanel">
+                <div class="notif-header">
+                    <span>Notifications</span>
+                    <button onclick="markAllRead()" class="mark-read-btn">Tout marquer lu</button>
+                </div>
+                <div class="notif-list" id="notifList">
+                    <div th:each="n : ${notifications}"
+                         th:classappend="${!n.read} ? ' unread'"
+                         class="notif-item"
+                         th:attr="data-id=${n.id}">
+                        <p th:text="${n.message}"></p>
+                        <small th:text="${#temporals.format(n.createdAt, 'dd/MM à HH:mm')}"></small>
+                    </div>
+                    <div th:if="${notifications == null or #lists.isEmpty(notifications)}" class="notif-empty">
+                        Aucune notification 🎉
+                    </div>
+                </div>
+            </div>
+        </div>
+        <a th:href="@{/profile}" class="topbar-avatar">
+            <div class="avatar avatar-sm" th:style="'background:' + ${user.avatarColor}" th:text="${user.initials}">AB</div>
+        </a>
+    </div>
+</header>
+
+<!-- ═══ Fragment MOBILE NAV ════════════════════════════════ -->
+<nav th:fragment="mobileNav" class="mobile-bottom-nav">
+    <div class="mobile-nav-items">
+        <a th:href="@{/}" class="mobile-nav-item" th:classappend="${page == 'home'} ? ' active'">
+            <span class="mobile-nav-icon">🏠</span><span>Accueil</span>
+        </a>
+        <a th:href="@{/dashboard}" class="mobile-nav-item" th:classappend="${page == 'dashboard'} ? ' active'">
+            <span class="mobile-nav-icon">📊</span><span>Dashboard</span>
+        </a>
+        <a th:href="@{/tasks}" class="mobile-nav-item" th:classappend="${page == 'tasks'} ? ' active'">
+            <span class="mobile-nav-icon">✅</span><span>Tâches</span>
+        </a>
+        <a th:href="@{/teams}" class="mobile-nav-item" th:classappend="${page == 'teams'} ? ' active'">
+            <span class="mobile-nav-icon">👥</span><span>Teams</span>
+        </a>
+        <a th:href="@{/profile}" class="mobile-nav-item" th:classappend="${page == 'profile'} ? ' active'">
+            <span class="mobile-nav-icon">👤</span><span>Profil</span>
+        </a>
+    </div>
+</nav>
+
+</body>
+</html>

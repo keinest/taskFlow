@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Projets', 'projects.css')}"></head>
+<body class="app-body">
+
+<div class="app-layout">
+    <div th:replace="~{fragments/layout :: sidebar}"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <div th:replace="~{fragments/layout :: topbar('Projets')}"></div>
+
+        <div class="content-inner">
+            <div class="section-header">
+                <h2>Tous les projets (<span th:text="${#lists.size(projects)}">0</span>)</h2>
+                <button class="btn btn-primary" onclick="openModal('projectModal')">+ Nouveau projet</button>
+            </div>
+
+            <div class="projects-full-grid" th:if="${!#lists.isEmpty(projects)}">
+                <div th:each="p : ${projects}" class="project-full-card">
+                    <div class="project-full-header" th:style="'border-left: 4px solid ' + ${p.color}">
+                        <div class="project-full-title">
+                            <div class="proj-color-circle" th:style="'background:' + ${p.color}"></div>
+                            <div>
+                                <h3 th:text="${p.name}">Projet</h3>
+                                <p th:text="${p.description ?: 'Aucune description'}">Desc</p>
+                            </div>
+                        </div>
+                        <div class="project-full-actions">
+                            <button class="btn-icon"
+                                    th:attr="onclick='editProject(' + ${p.id} + ', \'' + ${p.name} + '\', \'' + ${p.description ?: ''} + '\', \'' + ${p.color} + '\')'"
+                                    title="Éditer">✏️</button>
+                            <button class="btn-icon text-danger"
+                                    th:attr="onclick='deleteProject(' + ${p.id} + ')'"
+                                    title="Supprimer">🗑</button>
+                        </div>
+                    </div>
+                    <div class="project-full-body">
+                        <div class="project-stats-row">
+                            <div class="proj-stat">
+                                <span class="proj-stat-val" th:text="${p.taskCount}">0</span>
+                                <span class="proj-stat-label">Tâches</span>
+                            </div>
+                            <div class="proj-stat">
+                                <span class="proj-stat-val" th:text="${p.doneCount}">0</span>
+                                <span class="proj-stat-label">Terminées</span>
+                            </div>
+                            <div class="proj-stat">
+                                <span class="proj-stat-val" th:text="${p.progressPercent} + '%'">0%</span>
+                                <span class="proj-stat-label">Progression</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar mt-2">
+                            <div class="progress-fill"
+                                 th:style="'width:' + ${p.progressPercent} + '%; background:' + ${p.color}"></div>
+                        </div>
+                        <div class="project-owner-row" th:if="${p.owner != null}">
+                            <span class="avatar avatar-xs" th:style="'background:' + ${p.owner.avatarColor}"
+                                  th:text="${p.owner.initials}"></span>
+                            <span class="text-muted" th:text="'Chef : ' + ${p.owner.fullName}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(projects)}" class="empty-state">
+                <div class="empty-icon">📁</div>
+                <h3>Aucun projet</h3>
+                <p>Créez votre premier projet pour organiser vos tâches.</p>
+                <button class="btn btn-primary" onclick="openModal('projectModal')">Créer un projet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: mobileNav}"></div>
+
+<!-- Modal Projet -->
+<div class="modal-overlay hidden" id="projectModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="projModalTitle">Nouveau projet</h3>
+            <button onclick="closeModal('projectModal')" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="proj-id"/>
+            <div class="form-group">
+                <label>Nom du projet *</label>
+                <input type="text" id="proj-name" class="form-input" placeholder="Mon super projet"/>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="proj-desc" class="form-input form-textarea" placeholder="Décrivez votre projet..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Couleur</label>
+                <div class="color-picker">
+                    <button type="button" class="color-swatch active" style="background:#0ea5e9" onclick="selectProjColor('#0ea5e9',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#06b6d4" onclick="selectProjColor('#06b6d4',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#3b82f6" onclick="selectProjColor('#3b82f6',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#8b5cf6" onclick="selectProjColor('#8b5cf6',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#ec4899" onclick="selectProjColor('#ec4899',this)"></button>
+                    <button type="button" class="color-swatch" style="background:#10b981" onclick="selectProjColor('#10b981',this)"></button>
+                </div>
+                <input type="hidden" id="proj-color" value="#0ea5e9"/>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('projectModal')" class="btn btn-ghost">Annuler</button>
+            <button onclick="saveProject()" class="btn btn-primary" id="projSaveBtn">Créer le projet</button>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>
