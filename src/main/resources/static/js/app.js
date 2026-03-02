@@ -1,12 +1,10 @@
-/* ═══════════════════════════════════════════════════════
-   TASKFLOW — app.js
-   ═══════════════════════════════════════════════════════ */
+// === État global ======================
 
-// === État global ========================================
 let draggedTask = null;
 let selectedProjColor = '#6366f1';
 
-// === Dark Mode Toggle ====================================
+// === Dark Mode Toggle =================
+
 function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute('data-theme');
@@ -18,6 +16,7 @@ function toggleTheme() {
 }
 
 // Init theme on page load
+
 (function initTheme() {
   const saved = localStorage.getItem('taskflow-theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
@@ -29,6 +28,7 @@ function toggleTheme() {
 
 
 // === Sidebar ============================================
+
 function toggleSidebar() {
   const s = document.querySelector('.sidebar');
   const o = document.getElementById('sidebarOverlay');
@@ -46,6 +46,7 @@ function closeSidebar() {
 }
 
 // === Notifications =======================================
+
 function toggleNotifPanel() {
   const p = document.getElementById('notifPanel');
   if (p) {
@@ -55,7 +56,6 @@ function toggleNotifPanel() {
 }
 
 function loadNotifications() {
-  // BUG CORRIGÉ : l'API retourne directement un tableau, pas { notifications: [...] }
   fetch('/api/notifications')
     .then(r => r.json())
     .then(data => {
@@ -74,6 +74,7 @@ function loadNotifications() {
       `).join('');
 
       // Badge
+       
       const badge = document.querySelector('.notif-badge');
       if (badge) {
         const unread = notifications.filter(n => !n.read).length;
@@ -95,6 +96,7 @@ function markAllRead() {
 }
 
 // Fermer notif panel en cliquant dehors
+
 document.addEventListener('click', e => {
   const panel = document.getElementById('notifPanel');
   const wrapper = document.querySelector('.notif-wrapper');
@@ -104,6 +106,7 @@ document.addEventListener('click', e => {
 });
 
 // === Modals ==============================================
+
 function openModal(id) {
   const m = document.getElementById(id);
   if (m) {
@@ -121,6 +124,7 @@ function closeModal(id) {
 }
 
 // Fermer modal via backdrop
+
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
     e.target.classList.add('hidden');
@@ -129,6 +133,7 @@ document.addEventListener('click', e => {
 });
 
 // Fermer modal via Echap
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => {
@@ -138,7 +143,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// === TÂCHES ==============================================
+// === TÂCHES ====================
 
 function openNewTaskModal(status) {
   resetTaskModal();
@@ -241,7 +246,8 @@ function deleteTask(taskId) {
     .catch(() => showToast('Erreur réseau', 'error'));
 }
 
-// === Détail Tâche =========================================
+// === Détail Tâche =================
+
 function openTaskDetail(taskId) {
   openModal('taskDetailModal');
   const body = document.getElementById('taskDetailBody');
@@ -255,6 +261,7 @@ function openTaskDetail(taskId) {
       if (title) title.textContent = t.title;
 
       // Bouton éditer
+       
       const editBtn = document.getElementById('detail-edit-btn');
       if (editBtn) editBtn.onclick = () => { closeModal('taskDetailModal'); editTask(t.id); };
 
@@ -348,7 +355,8 @@ function changeTaskStatus(id, status) {
   });
 }
 
-// === Commentaires =========================================
+// === Commentaires ==================
+
 function submitComment(taskId) {
   const input = document.getElementById('commentInput');
   if (!input || !input.value.trim()) return;
@@ -393,14 +401,17 @@ function deleteComment(commentId) {
     .then(d => {
       if (d.error) { showToast(d.error, 'error'); return; }
       showToast('Commentaire supprimé', 'success');
-      // Retirer de l'UI
-      const btn = document.querySelector(`[onclick="deleteComment(${commentId})"]`);
+      
+       // Retirer de l'UI
+      
+       const btn = document.querySelector(`[onclick="deleteComment(${commentId})"]`);
       if (btn) btn.closest('.comment-item').remove();
     })
     .catch(() => showToast('Erreur', 'error'));
 }
 
-// === Drag & Drop ==========================================
+// === Drag & Drop ================
+
 function dragStart(e) {
   draggedTask = e.currentTarget;
   draggedTask.classList.add('dragging');
@@ -425,6 +436,7 @@ function drop(e) {
   const taskId = draggedTask.dataset.id;
 
   // Déplacer visuellement
+   
   const cardsContainer = col.querySelector('.kanban-cards');
   if (cardsContainer) {
     cardsContainer.appendChild(draggedTask);
@@ -432,9 +444,11 @@ function drop(e) {
   }
 
   // Mise à jour compteurs
+   
   updateColumnCounts();
 
   // API call
+   
   fetch(`/api/tasks/${taskId}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -463,7 +477,8 @@ function updateColumnCounts() {
   });
 }
 
-// === Vue switch ===========================================
+// === Vue switch ==================
+
 function switchView(view) {
   const kanban = document.getElementById('kanbanView');
   const list   = document.getElementById('listView');
@@ -486,11 +501,13 @@ function switchView(view) {
 }
 
 // Restaurer la vue préférée
+
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('taskView');
   if (saved === 'list') switchView('list');
 
   // Debounce recherche
+   
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     let timer;
@@ -501,7 +518,8 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// === Projets ==============================================
+// === Projets ===============
+
 function selectProjColor(color, el) {
   selectedProjColor = color;
   document.getElementById('proj-color').value = color;
@@ -551,6 +569,7 @@ function editProject(id, name, desc, color) {
   document.getElementById('proj-color').value = color;
 
   // Sélectionner la couleur
+   
   document.querySelectorAll('.color-swatch').forEach(s => {
     s.classList.toggle('active', s.style.background === color);
   });
@@ -572,7 +591,8 @@ function deleteProject(id) {
     .catch(() => showToast('Erreur réseau', 'error'));
 }
 
-// === Charts ===============================================
+// === Charts ===================
+
 function initCharts(data) {
   const statusCtx = document.getElementById('statusChart');
   if (statusCtx) {
@@ -632,7 +652,8 @@ function initCharts(data) {
   }
 }
 
-// === Utilitaires =========================================
+// === Utilitaires ====================
+
 function escHtml(str) {
   if (!str) return '';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -650,7 +671,8 @@ function formatDate(str) {
 
 function stopProp(e) { e.stopPropagation(); }
 
-// === Toast notifications ==================================
+// === Toast notifications ==============
+
 function showToast(message, type = 'info') {
   const existing = document.getElementById('toast-container');
   if (!existing) {
